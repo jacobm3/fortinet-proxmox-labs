@@ -1,72 +1,44 @@
 #!/bin/bash
 
+BRIDGE_LIST="asn_64512 asn_64513 hub_1 hub_2 branch_1 branch_2"
+PROJECT_PREFIX="Fortinet Lab SDWAN BGP route-map demo, "
+
 # Show existing bridges
 echo "Existing bridges:"
 ip link show type bridge
 
+cp /etc/network/interfaces /etc/network/interfaces.`date +%Y.%m.%d-%H.%M.%S`.bak
 
 # Create Linux Bridges
-PROJ_KEY=sdwan-bgp
-BRIDGE_PREFIX=br_${PROJ_KEY}
 
-cp /etc/network/interfaces /etc/network/interfaces.`date +%Y.%m.%d-%H.%M.%S`.bak
+counter=100
+
+for bridge in $BRIDGE_LIST; do
+
 cat >> /etc/network/interfaces <<EOF
 
-# Bridge naming convention: br_PROJECT_SITE
-
-# BGP peer, ASN 64512
-auto ${BRIDGE_PREFIX}_asn64512
-iface ${BRIDGE_PREFIX}_asn64512 inet static
+auto vmbr${counter}
+iface vmbr${counter} inet static
         bridge-ports none
         bridge-stp off
         bridge-fd 0
         bridge-vlan-aware yes
         bridge-vids 2-4094
-
-# BGP peer, ASN 64513
-auto ${BRIDGE_PREFIX}_asn64513
-iface ${BRIDGE_PREFIX}_asn64513 inet static
-        bridge-ports none
-        bridge-stp off
-        bridge-fd 0
-        bridge-vlan-aware yes
-        bridge-vids 2-4094
-
-# FortiGate Hub 1
-auto ${BRIDGE_PREFIX}_hub1
-iface ${BRIDGE_PREFIX}_hub1 inet static
-        bridge-ports none
-        bridge-stp off
-        bridge-fd 0
-        bridge-vlan-aware yes
-        bridge-vids 2-4094
-
-# FortiGate Hub 2
-auto ${BRIDGE_PREFIX}_hub2
-iface ${BRIDGE_PREFIX}_hub2 inet static
-        bridge-ports none
-        bridge-stp off
-        bridge-fd 0
-        bridge-vlan-aware yes
-        bridge-vids 2-4094
-        
-# FortiGate Branch 1
-auto ${BRIDGE_PREFIX}_branch1
-iface ${BRIDGE_PREFIX}_branch1 inet static
-        bridge-ports none
-        bridge-stp off
-        bridge-fd 0
-        bridge-vlan-aware yes
-        bridge-vids 2-4094
-
-# FortiGate Branch 2
-auto ${BRIDGE_PREFIX}_branch2
-iface ${BRIDGE_PREFIX}_branch2 inet static
-        bridge-ports none
-        bridge-stp off
-        bridge-fd 0
-        bridge-vlan-aware yes
-        bridge-vids 2-4094
-
-
+#${PROJECT_PREFIX} ${bridge}
 EOF
+    ((counter++))
+done
+
+
+
+# echo reloading interfaces
+ifreload -a
+
+counter=100
+
+for bridge in $BRIDGE_LIST; do
+  ifup vmbr${counter}
+done
+
+echo "Bridges after change:"
+ip link show type bridge
